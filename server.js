@@ -13,7 +13,8 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -29,8 +30,8 @@ app.use('/api/steps', stepRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (both /health and /api/health)
+const healthHandler = (req, res) => {
   res.json({
     status: 'online',
     app: 'Daily_Activity API Server (MongoDB)',
@@ -38,7 +39,9 @@ app.get('/api/health', (req, res) => {
     database: 'MongoDB Atlas',
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Root welcome route
 app.get('/', (req, res) => {
