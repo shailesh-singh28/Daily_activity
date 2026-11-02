@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 const { connectDB } = require('./src/config/db');
 
 dotenv.config();
@@ -13,7 +14,14 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    credentials: false,
+  })
+);
 app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -32,11 +40,20 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint (both /health and /api/health)
 const healthHandler = (req, res) => {
-  res.json({
-    status: 'online',
+  const dbState = mongoose.connection.readyState;
+  const isDbConnected = dbState === 1;
+  const dbStatusMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+
+  res.status(isDbConnected ? 200 : 503).json({
+    status: isDbConnected ? 'online' : 'database_unavailable',
+    database: {
+      status: dbStatusMap[dbState] || 'unknown',
+      connected: isDbConnected,
+      host: mongoose.connection.host || null,
+      name: mongoose.connection.name || null,
+    },
     app: 'Daily_Activity API Server (MongoDB)',
     version: '1.0.0',
-    database: 'MongoDB Atlas',
     timestamp: new Date().toISOString(),
   });
 };

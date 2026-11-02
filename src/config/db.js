@@ -4,25 +4,28 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Ensure SRV DNS lookup succeeds on Windows machines
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {
-  // If setServers fails in restricted environments, proceed with default
+// Ensure SRV DNS lookup succeeds ONLY on Windows local machines
+// Do NOT override DNS on Linux / cloud containers (Render, AWS, Docker)
+if (process.platform === 'win32') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch (e) {
+    // Ignore if not permitted
+  }
 }
 
-const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
-  const dbName = process.env.DB_NAME || 'daily_activity';
+const DEFAULT_FALLBACK_URI =
+  'mongodb+srv://shaileshsingh7617_db_user:mhHycRxffhJxJ6FG@cluster0.ebu7pmf.mongodb.net/daily_activity?retryWrites=true&w=majority';
 
-  if (!uri) {
-    console.error('ERROR: MONGODB_URI is not defined in environment variables.');
-    process.exit(1);
-  }
+const connectDB = async () => {
+  const uri = process.env.MONGODB_URI || DEFAULT_FALLBACK_URI;
+  const dbName = process.env.DB_NAME || 'daily_activity';
 
   try {
     const conn = await mongoose.connect(uri, {
       dbName: dbName,
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 15000,
     });
     console.log(`===============================================`);
     console.log(` MongoDB Connected Successfully!`);
@@ -31,7 +34,6 @@ const connectDB = async () => {
     console.log(`===============================================`);
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error.message);
-    process.exit(1);
   }
 };
 
