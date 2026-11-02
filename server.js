@@ -3,7 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-const { connectDB } = require('./src/config/db');
+const { connectDB, getDbStatus } = require('./src/config/db');
 
 dotenv.config();
 
@@ -27,6 +27,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Auto-reconnect middleware if DB is disconnected
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    connectDB().catch(() => {});
+  }
+  next();
+});
+
 // Routes
 const authRoutes = require('./src/routes/authRoutes');
 const stepRoutes = require('./src/routes/stepRoutes');
@@ -40,17 +48,18 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint (both /health and /api/health)
 const healthHandler = (req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const isDbConnected = dbState === 1;
+  const { state, error } = getDbStatus();
+  const isDbConnected = state === 1;
   const dbStatusMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
 
   res.status(isDbConnected ? 200 : 503).json({
     status: isDbConnected ? 'online' : 'database_unavailable',
     database: {
-      status: dbStatusMap[dbState] || 'unknown',
+      status: dbStatusMap[state] || 'unknown',
       connected: isDbConnected,
       host: mongoose.connection.host || null,
       name: mongoose.connection.name || null,
+      error: isDbConnected ? null : (error || 'Database connection in progress...'),
     },
     app: 'Daily_Activity API Server (MongoDB)',
     version: '1.0.0',

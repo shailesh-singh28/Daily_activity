@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Goal = require('../models/Goal');
 
@@ -7,6 +8,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'daily_activity_super_secure_jwt_se
 
 const register = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database is connecting. Please ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access and try again.',
+      });
+    }
+
     const { name, email, password, weight_kg, height_cm, stride_length_cm } = req.body;
 
     if (!name || !email || !password) {
@@ -76,6 +84,13 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database is connecting. Please ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access and try again.',
+      });
+    }
+
     const { email, password } = req.body;
 
     if (!email || !password) {
