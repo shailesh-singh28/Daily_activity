@@ -54,4 +54,7 @@ const stepRecordSchema = new mongoose.Schema(
   }
 );
 
+// Compound unique index so each user has at most 1 step record per date
+stepRecordSchema.index({ userId: 1, date: 1 }, { unique: true });
+
 module.exports = mongoose.model('StepRecord', stepRecordSchema);

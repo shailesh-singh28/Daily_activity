@@ -49,17 +49,23 @@ const syncSteps = async (req, res) => {
       calories !== undefined ? parseFloat(calories) : calculateCalories(steps, weight, strideLength);
     const finalActiveMinutes = calculateActiveMinutes(steps);
 
-    // 1. Insert record into StepRecord collection
-    await StepRecord.create({
-      userId,
-      date,
-      timestamp: new Date(timestamp),
-      stepCount: steps,
-      distanceMeters: finalDistance,
-      calories: finalCalories,
-      durationSeconds: duration_seconds,
-      source,
-    });
+    // 1. Upsert single record per day per user into StepRecord collection
+    await StepRecord.findOneAndUpdate(
+      { userId, date },
+      {
+        $max: {
+          stepCount: steps,
+          distanceMeters: finalDistance,
+          calories: finalCalories,
+          durationSeconds: duration_seconds,
+        },
+        $set: {
+          timestamp: new Date(timestamp),
+          source,
+        },
+      },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
 
     // 2. Fetch or create user's goal
     let goal = await Goal.findOne({ userId });
@@ -181,16 +187,23 @@ const logWorkoutSession = async (req, res) => {
     const distanceM = calculateDistanceMeters(steps, strideLength);
     const calories = calculateCalories(steps, weight, strideLength);
 
-    await StepRecord.create({
-      userId,
-      date: today,
-      timestamp: new Date(),
-      stepCount: steps,
-      distanceMeters: distanceM,
-      calories,
-      durationSeconds: duration_seconds,
-      source: `workout:${activity_type}`,
-    });
+    // Maintain single record per day per user by incrementing today's totals
+    await StepRecord.findOneAndUpdate(
+      { userId, date: today },
+      {
+        $inc: {
+          stepCount: steps,
+          distanceMeters: distanceM,
+          calories: calories,
+          durationSeconds: duration_seconds,
+        },
+        $set: {
+          timestamp: new Date(),
+          source: `workout:${activity_type}`,
+        },
+      },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
 
     const goal = await Goal.findOne({ userId });
     const targetGoal = goal ? goal.dailySteps : 10000;

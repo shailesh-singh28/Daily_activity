@@ -40,11 +40,13 @@ const authRoutes = require('./src/routes/authRoutes');
 const stepRoutes = require('./src/routes/stepRoutes');
 const goalRoutes = require('./src/routes/goalRoutes');
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
+const reminderRoutes = require('./src/routes/reminderRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/steps', stepRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 // Health check endpoint (both /health and /api/health)
 const healthHandler = (req, res) => {
