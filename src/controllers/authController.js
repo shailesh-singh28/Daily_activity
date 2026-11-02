@@ -153,7 +153,7 @@ const getMe = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, weight_kg, height_cm, stride_length_cm } = req.body;
+    const { name, weight_kg, height_cm, stride_length_cm, avatar_url } = req.body;
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -161,6 +161,7 @@ const updateProfile = async (req, res) => {
     }
 
     if (name !== undefined) user.name = name.trim();
+    if (avatar_url !== undefined) user.avatar_url = avatar_url;
     if (weight_kg !== undefined) user.weight_kg = parseFloat(weight_kg);
     if (height_cm !== undefined) user.height_cm = parseFloat(height_cm);
     if (stride_length_cm !== undefined) {
